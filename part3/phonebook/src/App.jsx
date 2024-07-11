@@ -40,7 +40,7 @@ const PersonForm = ({ addPerson, newName, handleNameChange, newNumber, handleNum
 
 const Persons = ({persons, handleDelete, newLetters}) => {
   const filteredPersons = persons.filter(person => 
-  person.name.toLowerCase().startsWith(newLetters.toLowerCase())
+    person.name.toLowerCase().startsWith(newLetters.toLowerCase())
     )
 
   return (
@@ -134,17 +134,23 @@ const App = () => {
           }
                
     } else {
-    personService
-    .create(personObject) 
-    .then(returnedPerson => { 
-      setPersons(persons.concat(returnedPerson))
-      setNewName('')
-      setNewNumber('')
-    })
-    setStatusMessage(`Added ${newName}`)
-    setTimeout(() => {
-      setStatusMessage(null)
-    }, 5000)
+      personService
+        .create(personObject) 
+        .then(returnedPerson => { 
+          setPersons(persons.concat(returnedPerson))
+          setNewName('')
+          setNewNumber('')
+          setStatusMessage(`Added ${newName}`)
+          setTimeout(() => {
+            setStatusMessage(null)
+          }, 5000)
+      })
+      .catch(error => {
+        setErrorMessage(`${error.response.data.error}`)
+        setTimeout(() => {
+          setErrorMessage(null)
+        },  5000)
+      })
     }
   }
   
