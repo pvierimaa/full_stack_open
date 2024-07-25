@@ -9,18 +9,32 @@ const Blog = require('../models/blog')
 const bcrypt = require('bcrypt')
 const User = require('../models/user')
 
+let token = null
+
 beforeEach(async () => {
-  await Blog.deleteMany({})
-  await Blog.insertMany(helper.initialBlogs)
+  await Blog.deleteMany({});
+  await User.deleteMany({});
 
-  await User.deleteMany({})
-
-  const passwordHash = await bcrypt.hash('sekret', 10)
-  const user = new User({ username: 'root', passwordHash })
-
+  const passwordHash = await bcrypt.hash('sekret', 10);
+  const user = new User({ username: 'root', passwordHash });
   await user.save()
-})
 
+  const blogsWithUser = helper.initialBlogs.map(blog => ({
+    ...blog,
+    user: user._id
+  }))
+
+  await Blog.insertMany(blogsWithUser)
+
+  const response = await api
+    .post('/api/login')
+    .send({ username: 'root', password: 'sekret' })
+    .expect(200)
+    .expect('Content-Type', /application\/json/);
+
+  token = response.body.token
+})
+  
 describe('when there are initially two blogs saved', () => {
   test('all blogs are returned as JSON', async () => {
     const response = await api.get('/api/blogs')
@@ -41,21 +55,18 @@ describe('when there are initially two blogs saved', () => {
 
 describe('addition of a new blog', () => {
   test('a valid blog can be added ', async () => {
-    const usersAtStart = await helper.usersInDb()
-    const user = usersAtStart[0]
-
     const newBlog = {
         _id: "5a422b3a1b54a676234d17f9",
         title: "Canonical string reduction",
         author: "Edsger W. Dijkstra",
         url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
         likes: 12,
-        userId: user.id,
         __v: 0
     }
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`) 
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -70,18 +81,15 @@ describe('addition of a new blog', () => {
   })
 
   test('if likes is not given, it defaults to 0', async () => {
-    const usersAtStart = await helper.usersInDb()
-    const user = usersAtStart[0]
-
     const newBlog = {
       title: "Test Blog Without Likes",
       author: "Test Author",
       url: "http://testurl.com",
-      userId: user.id
     }
 
     const response = await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`) 
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -97,6 +105,7 @@ describe('addition of a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(400)
   })
@@ -109,8 +118,23 @@ describe('addition of a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(400)
+  })
+
+  test('adding a blog without token returns 401 Unauthorized', async () => {
+    const newBlog = {
+      title: "Test Blog Without Token",
+      author: "Test Author",
+      url: "http://testurl.com",
+    };
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(401)
+      .expect('Content-Type', /application\/json/)
   })
 })  
 
@@ -121,6 +145,7 @@ describe('deletion of a blog', () => {
 
     await api
       .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(204)
 
     const blogsAtEnd = await helper.blogsInDb()
