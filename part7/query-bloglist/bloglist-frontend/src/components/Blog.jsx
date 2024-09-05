@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import RemoveButton from './RemoveButton'
+import { Link } from 'react-router-dom'
 
-const Blog = ({ blog, onDelete, user, onLike }) => {
+const Blog = ({ blog }) => {
   const blogStyle = {
     paddingTop: 10,
     paddingLeft: 2,
@@ -10,31 +9,11 @@ const Blog = ({ blog, onDelete, user, onLike }) => {
     marginBottom: 5,
   }
 
-  const [detailsVisible, setDetailsVisible] = useState(false)
-
-  const hideWhenVisible = { display: detailsVisible ? 'none' : '' }
-  const showWhenVisible = { display: detailsVisible ? '' : 'none' }
-
   return (
-    <div style={blogStyle}>
-      <div style={hideWhenVisible} data-testid="blog-summary">
+    <div style={blogStyle} data-testid="blog-summary">
+      <Link to={`/blogs/${blog.id}`}>
         {blog.title} {blog.author}
-        <button onClick={() => setDetailsVisible(true)}>view</button>
-      </div>
-      <div style={showWhenVisible} data-testid="blog-details">
-        {blog.title} {blog.author}
-        <button onClick={() => setDetailsVisible(false)}>hide</button> <br />
-        {blog.url} <br />
-        likes {blog.likes}{' '}
-        <button onClick={() => onLike(blog.id, blog)}>like</button> <br />
-        {blog.user.name} <br />
-        <RemoveButton
-          user={user}
-          blogUser={blog.user.name}
-          onDelete={onDelete}
-          blog={blog}
-        />
-      </div>
+      </Link>
     </div>
   )
 }

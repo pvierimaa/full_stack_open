@@ -1,10 +1,16 @@
+import { Button } from '@mui/material'
+
 const RemoveButton = ({ user, blogUser, onDelete, blog }) => {
   if (user === blogUser) {
     return (
       <div>
-        <button onClick={() => onDelete(blog.id, blog.title, blog.author)}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => onDelete(blog.id, blog.title, blog.author)}
+        >
           remove
-        </button>
+        </Button>
       </div>
     )
   }

@@ -1,13 +1,30 @@
 import loginService from './services/login'
-import { useEffect, useRef, useContext } from 'react'
+import blogService from './services/blogs'
+import userService from './services/users'
 import Notification from './components/Notification'
 import Blog from './components/Blog'
-import blogService from './services/blogs'
+import BlogDetails from './components/BlogDetails'
 import BlogForm from './components/BlogForm'
 import Togglable from './components/Togglable'
+import User from './components/User'
+import Users from './components/Users'
+import Menu from './components/Menu'
+import UserContext from './UserContext'
+import { useEffect, useRef, useContext } from 'react'
 import { useNotificationDispatch } from './NotificationContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import UserContext from './UserContext'
+import { Routes, Route } from 'react-router-dom'
+import {
+  Container,
+  Button,
+  TextField,
+  Paper,
+  TableContainer,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@mui/material'
 
 const App = () => {
   const blogFormRef = useRef()
@@ -98,9 +115,21 @@ const App = () => {
     },
   })
 
+  const addCommentMutation = useMutation({
+    mutationFn: ({ id, comment }) => blogService.addComment(id, comment),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['blogs'])
+    },
+  })
+
   const result = useQuery({
     queryKey: ['blogs'],
     queryFn: blogService.getAll,
+  })
+
+  const result_users = useQuery({
+    queryKey: ['users'],
+    queryFn: userService.getAll,
   })
 
   if (result.isLoading) {
@@ -112,6 +141,16 @@ const App = () => {
   }
 
   const blogs = result.data
+
+  if (result_users.isLoading) {
+    return <div>loading data...</div>
+  }
+
+  if (result_users.isError) {
+    return <div>blog service not available due to problems in server</div>
+  }
+
+  const users = result_users.data
 
   const addBlog = (blogObject) => {
     blogFormRef.current.toggleVisibility()
@@ -128,53 +167,97 @@ const App = () => {
     likeBlogMutation.mutate({ id, blog })
   }
 
+  const handleAddComment = (id, comment) => {
+    addCommentMutation.mutate({ id, comment })
+  }
+
   const sortedBlogs = [...blogs].sort((a, b) => {
     return b.likes - a.likes
   })
 
   if (user === null) {
     return (
-      <div>
-        <h2>Log in to application</h2>
-        <Notification />
-        <form onSubmit={handleLogin}>
-          <div>
-            username
-            <input data-testid="username" type="text" name="username" />
-          </div>
-          <div>
-            password
-            <input data-testid="password" type="password" name="password" />
-          </div>
-          <button type="submit">login</button>
-        </form>
-      </div>
+      <Container>
+        <div>
+          <h2>Log in to application</h2>
+          <Notification />
+          <form onSubmit={handleLogin}>
+            <div>
+              <TextField
+                label="username"
+                data-testid="username"
+                type="text"
+                name="username"
+              />
+            </div>
+            <div>
+              <TextField
+                label="password"
+                data-testid="password"
+                type="password"
+                name="password"
+              />
+            </div>
+            <Button variant="contained" color="primary" type="submit">
+              login
+            </Button>
+          </form>
+        </div>
+      </Container>
     )
   }
 
   return (
-    <div>
+    <Container>
       <div>
-        <h2>blogs</h2>
-        <Notification />
-        {user.name} logged in
-        <button onClick={handleLogout}>logout</button>
+        <div>
+          <Menu user={user.name} handleLogout={handleLogout} />
+          <h1>blog app</h1>
+          <Notification />
+        </div>
+        <div>
+          <Routes>
+            <Route path="/users/:id" element={<User users={users} />} />
+            <Route path="/users" element={<Users users={users} />} />
+            <Route
+              path="/blogs/:id"
+              element={
+                <BlogDetails
+                  blogs={blogs}
+                  user={user.name}
+                  onDelete={handleDeleteBlog}
+                  onLike={handleLikeBlog}
+                  addComment={handleAddComment}
+                />
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <div>
+                  <Togglable buttonLabel="create new" ref={blogFormRef}>
+                    <BlogForm createBlog={addBlog} />
+                  </Togglable>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableBody>
+                        {sortedBlogs.map((blog) => (
+                          <TableRow key={blog.id}>
+                            <TableCell>
+                              <Blog key={blog.id} blog={blog} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </div>
+              }
+            />
+          </Routes>
+        </div>
       </div>
-      <div>
-        <Togglable buttonLabel="create new blog" ref={blogFormRef}>
-          <BlogForm createBlog={addBlog} />
-        </Togglable>
-        {sortedBlogs.map((blog) => (
-          <Blog
-            key={blog.id}
-            blog={blog}
-            user={user.name}
-            onDelete={handleDeleteBlog}
-            onLike={handleLikeBlog}
-          />
-        ))}
-      </div>
-    </div>
+    </Container>
   )
 }
 
