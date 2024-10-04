@@ -21,14 +21,14 @@ const EDIT_AUTHOR = gql`
 `
 
 const Authors = (props) => {
-  const result = useQuery(ALL_AUTHORS, {
-    pollInterval: 2000,
-  })
+  const result = useQuery(ALL_AUTHORS)
 
   const [selectedAuthor, setSelectedAuthor] = useState(null)
   const [setBornTo, setSetBornTo] = useState('')
 
-  const [editAuthor] = useMutation(EDIT_AUTHOR)
+  const [editAuthor] = useMutation(EDIT_AUTHOR, {
+    refetchQueries: [{ query: ALL_AUTHORS }],
+  })
 
   if (!props.show) {
     return null
@@ -56,45 +56,62 @@ const Authors = (props) => {
     setSetBornTo('')
   }
 
-  return (
-    <div>
-      <h2>authors</h2>
-      <table>
-        <tbody>
-          <tr>
-            <th></th>
-            <th>born</th>
-            <th>books</th>
-          </tr>
-          {authors.map((a) => (
-            <tr key={a.name}>
-              <td>{a.name}</td>
-              <td>{a.born}</td>
-              <td>{a.bookCount}</td>
+  if (!props.token) {
+    return (
+      <div>
+        <h2>authors</h2>
+        <table>
+          <tbody>
+            <tr>
+              <th></th>
+              <th>born</th>
+              <th>books</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <h2>Set birthyear</h2>
-      <form onSubmit={submit}>
-        <div>
-          <Select
-            value={selectedAuthor}
-            onChange={setSelectedAuthor}
-            options={authorOptions}
-          />
-        </div>
-        <div>
-          born
-          <input
-            value={setBornTo}
-            onChange={({ target }) => setSetBornTo(target.value)}
-          />
-        </div>
-        <button type="submit">update author</button>
-      </form>
-    </div>
-  )
+            {authors.map((a) => (
+              <tr key={a.name}>
+                <td>{a.name}</td>
+                <td>{a.born}</td>
+                <td>{a.bookCount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  } else {
+    return (
+      <div>
+        <h2>authors</h2>
+        <table>
+          <tbody>
+            <tr>
+              <th></th>
+              <th>born</th>
+              <th>books</th>
+            </tr>
+            {authors.map((a) => (
+              <tr key={a.name}>
+                <td>{a.name}</td>
+                <td>{a.born}</td>
+                <td>{a.bookCount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h2>Set birthyear</h2>
+        <form onSubmit={submit}>
+          <div>
+            <Select value={selectedAuthor} onChange={setSelectedAuthor} options={authorOptions} />
+          </div>
+          <div>
+            born
+            <input value={setBornTo} onChange={({ target }) => setSetBornTo(target.value)} />
+          </div>
+          <button type="submit">update author</button>
+        </form>
+      </div>
+    )
+  }
 }
 
 export default Authors
